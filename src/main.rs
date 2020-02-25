@@ -8,7 +8,11 @@ fn print_api(prefix: &str, r: Response) -> Result<(), Box<dyn std::error::Error>
     println!("{}: status = {:?}", prefix, r.status());
     println!("{}: headers = {:?}", prefix, r.headers());
     // println!("{}: body = {:?}", prefix, r.text()?);
-    println!("{}: body = {:?}", prefix, r.json::<lbc::SearchResult>()?);
+    println!(
+        "{}: body = {:?}",
+        prefix,
+        r.json::<lbc::search::Response>()?
+    );
     Ok(())
 }
 

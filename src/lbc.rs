@@ -32,60 +32,8 @@ pub fn client() -> reqwest::Result<Client> {
         .build()
 }
 
-// "{
-//    \"filters\":{\"category\":{\"id\":\"9\"},\"enums\": {
-//          \"ad_type\":[\"offer\"],\"immo_sell_type\":[\"old\",\"new\"],\"real_estate_type\":[\"1\"]},\"keywords\":{},
-//          \"location\":{\"locations\": [
-//               {\"locationType\":\"department\",\"label\":\"Isère\",\"department_id\":\"38\",\"region_id\":\"22\"},
-//               {\"locationType\":\"department\",\"label\":\"Rhône\",\"department_id\":\"69\",\"region_id\":\"22\"},
-//               {\"locationType\":\"department\",\"label\":\"Ain\",\"department_id\":\"1\",\"region_id\":\"22\"}
-//          ]},
-//          \"ranges\": {
-//               \"price\":{\"min\":200000,\"max\":400000},
-//               \"rooms\":{\"min\":4},
-//               \"square\":{\"min\":80}
-//          }
-//    },
-//    \"limit\":35,
-//    \"limit_alu\":3,
-//    \"user_id\":\"d2f08b09-1a54-49bc-9d96-4ad96b227df2\",
-//    \"store_id\":\"47756443\"
-// }";
-
-pub struct Category {
-    id: String,
-}
-
-pub struct EnumParams {
-    ad_type: Vec<String>,
-    immo_sell_type: Vec<String>,
-    real_estate_type: Vec<String>,
-    keywords: serde_json::Value,
-    location: serde_json::Value,
-}
-
-pub struct SearchParams {
-    category: Category,
-    enums: EnumParams,
-}
-
-/// SearchResult from a call to finder/search api.
-#[derive(Debug, serde::Deserialize)]
-pub struct SearchResult {
-    total: u32,
-    total_all: u32,
-    total_pro: u32,
-    total_private: u32,
-    total_active: u32,
-    total_inactive: u32,
-    max_pages: u32,
-    referrer_id: String,
-    pivot: String,
-    ads: Vec<Ad>,
-}
-
 /// Ad is an ad as returned by finder/search api.
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Ad {
     ad_type: String,
     price: Vec<u32>,
@@ -109,11 +57,88 @@ pub struct Ad {
 }
 
 /// Attribute describes the properties of the object sold by an ad.
-#[derive(Debug, serde::Deserialize)]
-struct Attribute {
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct Attribute {
     generic: bool,
     key: String,
     key_label: Option<String>,
     value: String,
     value_label: String,
+}
+
+pub mod search {
+
+    use crate::lbc::Ad;
+    use serde::{Deserialize, Serialize};
+    use std::collections::HashMap;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Request {
+        filters: Filters,
+        limit: u32,
+        limit_alu: u32,
+        user_id: String,
+        store_id: String,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Filters {
+        category: Category,
+        enums: EnumParams,
+        keywords: serde_json::Value,
+        location: Locations,
+        ranges: HashMap<String, Range>,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Category {
+        id: String,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct EnumParams {
+        ad_type: Vec<String>,
+        immo_sell_type: Vec<String>,
+        real_estate_type: Vec<String>,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Locations {
+        locations: Vec<Location>,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Location {
+        locationType: String,
+        label: String,
+        department_id: String,
+        region_id: String,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Range {
+        min: i32,
+        max: Option<i32>,
+    }
+
+    /// SearchResult from a call to finder/search api.
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Response {
+        total: u32,
+        total_all: u32,
+        total_pro: u32,
+        total_private: u32,
+        total_active: u32,
+        total_inactive: u32,
+        max_pages: u32,
+        referrer_id: String,
+        pivot: String,
+        ads: Vec<Ad>,
+    }
+
+    #[test]
+    fn test_serde_json_search_params() {
+        let input = "{\"filters\":{\"category\":{\"id\":\"9\"},\"enums\":{\"ad_type\":[\"offer\"],\"immo_sell_type\":[\"old\",\"new\"],\"real_estate_type\":[\"1\"]},\"keywords\":{},\"location\":{\"locations\":[{\"locationType\":\"department\",\"label\":\"Isère\",\"department_id\":\"38\",\"region_id\":\"22\"},{\"locationType\":\"department\",\"label\":\"Rhône\",\"department_id\":\"69\",\"region_id\":\"22\"},{\"locationType\":\"department\",\"label\":\"Ain\",\"department_id\":\"1\",\"region_id\":\"22\"}]},\"ranges\":{\"price\":{\"min\":200000,\"max\":400000},\"rooms\":{\"min\":4},\"square\":{\"min\":80}}},\"limit\":35,\"limit_alu\":3,\"user_id\":\"d2f08b09-1a54-49bc-9d96-4ad96b227df2\",\"store_id\":\"47756443\"}";
+        let _: Request = serde_json::from_str(input).expect("serializing");
+    }
 }
