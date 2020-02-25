@@ -32,6 +32,43 @@ pub fn client() -> reqwest::Result<Client> {
         .build()
 }
 
+// "{
+//    \"filters\":{\"category\":{\"id\":\"9\"},\"enums\": {
+//          \"ad_type\":[\"offer\"],\"immo_sell_type\":[\"old\",\"new\"],\"real_estate_type\":[\"1\"]},\"keywords\":{},
+//          \"location\":{\"locations\": [
+//               {\"locationType\":\"department\",\"label\":\"Isère\",\"department_id\":\"38\",\"region_id\":\"22\"},
+//               {\"locationType\":\"department\",\"label\":\"Rhône\",\"department_id\":\"69\",\"region_id\":\"22\"},
+//               {\"locationType\":\"department\",\"label\":\"Ain\",\"department_id\":\"1\",\"region_id\":\"22\"}
+//          ]},
+//          \"ranges\": {
+//               \"price\":{\"min\":200000,\"max\":400000},
+//               \"rooms\":{\"min\":4},
+//               \"square\":{\"min\":80}
+//          }
+//    },
+//    \"limit\":35,
+//    \"limit_alu\":3,
+//    \"user_id\":\"d2f08b09-1a54-49bc-9d96-4ad96b227df2\",
+//    \"store_id\":\"47756443\"
+// }";
+
+pub struct Category {
+    id: String,
+}
+
+pub struct EnumParams {
+    ad_type: Vec<String>,
+    immo_sell_type: Vec<String>,
+    real_estate_type: Vec<String>,
+    keywords: serde_json::Value,
+    location: serde_json::Value,
+}
+
+pub struct SearchParams {
+    category: Category,
+    enums: EnumParams,
+}
+
 /// SearchResult from a call to finder/search api.
 #[derive(Debug, serde::Deserialize)]
 pub struct SearchResult {
