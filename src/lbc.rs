@@ -71,6 +71,31 @@ pub mod search {
     use crate::lbc::Ad;
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
+    use std::str::FromStr;
+
+    pub struct RequestBuilder {
+        request: Request,
+    }
+
+    impl RequestBuilder {
+        fn new() -> RequestBuilder {
+            RequestBuilder {
+                request: Request::default(),
+            }
+        }
+        fn build(self) -> Request {
+            self.request
+        }
+
+        fn user_id(mut self, id: String) -> Self {
+            self.request.user_id = id;
+            self
+        }
+        fn store_id(mut self, id: String) -> Self {
+            self.request.store_id = id;
+            self
+        }
+    }
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Request {
@@ -81,7 +106,19 @@ pub mod search {
         store_id: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    impl Default for Request {
+        fn default() -> Self {
+            Request {
+                filters: Filters::default(),
+                limit: 100,
+                limit_alu: 3,
+                user_id: "".to_owned(),
+                store_id: "".to_owned(),
+            }
+        }
+    }
+
+    #[derive(Debug, Default, Serialize, Deserialize)]
     pub struct Filters {
         category: Category,
         enums: EnumParams,
@@ -90,26 +127,27 @@ pub mod search {
         ranges: HashMap<String, Range>,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Default, Serialize, Deserialize)]
     pub struct Category {
         id: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Default, Serialize, Deserialize)]
     pub struct EnumParams {
         ad_type: Vec<String>,
         immo_sell_type: Vec<String>,
         real_estate_type: Vec<String>,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Default, Serialize, Deserialize)]
     pub struct Locations {
         locations: Vec<Location>,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Location {
-        locationType: String,
+        #[serde(rename = "locationType")]
+        location_type: String,
         label: String,
         department_id: String,
         region_id: String,
