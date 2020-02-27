@@ -1,8 +1,9 @@
-use serde::Deserialize;
+use serde::de::{self, Unexpected};
+use serde::{Deserialize, Deserializer};
 
 /// Stop (arret/gare)
 #[derive(Debug, Deserialize)]
-struct Stop {
+pub struct Stop {
     stop_id: String,
     stop_name: String,
     stop_desc: String,
@@ -23,7 +24,7 @@ fn deserialize_stops() {
 
 /// Route (ligne)
 #[derive(Debug, Deserialize)]
-struct Route {
+pub struct Route {
     route_id: String,
     agency_id: String,
     route_short_name: String,
@@ -46,7 +47,7 @@ fn deserialize_routes() {
 
 /// Trip on a route (voyage d'une ligne)
 #[derive(Debug, Deserialize)]
-struct Trip {
+pub struct Trip {
     route_id: String,
     service_id: u32,
     trip_id: String,
@@ -67,7 +68,7 @@ fn deserialize_trips() {
 
 /// StopTime a train arrival/departure from a stop on a trip (arret dans un voyage)
 #[derive(Debug, Deserialize)]
-struct StopTime {
+pub struct StopTime {
     trip_id: String,
     arrival_time: String,
     departure_time: String,
@@ -86,4 +87,61 @@ fn deserialize_stoptimes() {
         let _route: StopTime = record.unwrap();
         println!("{:?}", _route);
     }
+}
+
+/// Service is a weekly calendar of availability of a Route
+#[derive(Debug, Deserialize)]
+pub struct Service {
+    service_id: u32,
+    #[serde(deserialize_with = "bool_from_int")]
+    monday: bool,
+    #[serde(deserialize_with = "bool_from_int")]
+    tuesday: bool,
+    #[serde(deserialize_with = "bool_from_int")]
+    wednesday: bool,
+    #[serde(deserialize_with = "bool_from_int")]
+    thursday: bool,
+    #[serde(deserialize_with = "bool_from_int")]
+    friday: bool,
+    #[serde(deserialize_with = "bool_from_int")]
+    saturday: bool,
+    #[serde(deserialize_with = "bool_from_int")]
+    sunday: bool,
+    start_date: String,
+    end_date: String,
+}
+
+fn bool_from_int<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match u8::deserialize(deserializer)? {
+        0 => Ok(false),
+        1 => Ok(true),
+        other => Err(de::Error::invalid_value(
+            Unexpected::Unsigned(other as u64),
+            &"zero or one",
+        )),
+    }
+}
+
+#[test]
+fn deserialize_service_calendar() {
+    let services: Vec<Service> = from_csv("sncf-ter-gtfs/calendar.txt").unwrap();
+    for service in services {
+        println!("{:?}", service);
+    }
+}
+
+pub fn from_csv<'a, T>(path: &str) -> Result<Vec<T>, Box<dyn std::error::Error>>
+where
+    T: Deserialize<'a>,
+{
+    let mut rdr = csv::Reader::from_path(path)?;
+    let mut records = Vec::new();
+    for csv_record in rdr.deserialize() {
+        let record: T = csv_record?;
+        records.push(record);
+    }
+    Ok(records)
 }
