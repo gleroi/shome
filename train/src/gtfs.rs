@@ -1,4 +1,4 @@
-use serde::de::{self, Unexpected};
+use serde::de::{self, DeserializeOwned, Unexpected};
 use serde::{Deserialize, Deserializer};
 
 /// Stop (arret/gare)
@@ -16,9 +16,9 @@ pub struct Stop {
 
 #[test]
 fn deserialize_stops() {
-    let mut rdr = csv::Reader::from_path("sncf-ter-gtfs/stops.txt").expect("opening file");
-    for record in rdr.deserialize() {
-        let _stop: Stop = record.unwrap();
+    let entities: Vec<Stop> = from_csv("sncf-ter-gtfs/stops.txt").unwrap();
+    for entity in entities {
+        println!("{:?}", entity);
     }
 }
 
@@ -38,10 +38,9 @@ pub struct Route {
 
 #[test]
 fn deserialize_routes() {
-    let mut rdr = csv::Reader::from_path("sncf-ter-gtfs/routes.txt").expect("opening file");
-    for record in rdr.deserialize() {
-        let _route: Route = record.unwrap();
-        println!("{:?}", _route);
+    let entities: Vec<Route> = from_csv("sncf-ter-gtfs/routes.txt").unwrap();
+    for entity in entities {
+        println!("{:?}", entity);
     }
 }
 
@@ -59,10 +58,9 @@ pub struct Trip {
 
 #[test]
 fn deserialize_trips() {
-    let mut rdr = csv::Reader::from_path("sncf-ter-gtfs/trips.txt").expect("opening file");
-    for record in rdr.deserialize() {
-        let _route: Trip = record.unwrap();
-        println!("{:?}", _route);
+    let entities: Vec<Trip> = from_csv("sncf-ter-gtfs/trips.txt").unwrap();
+    for entity in entities {
+        println!("{:?}", entity);
     }
 }
 
@@ -70,8 +68,10 @@ fn deserialize_trips() {
 #[derive(Debug, Deserialize)]
 pub struct StopTime {
     trip_id: String,
-    arrival_time: String,
-    departure_time: String,
+    #[serde(deserialize_with = "duration_from_string")]
+    arrival_time: chrono::Duration,
+    #[serde(deserialize_with = "duration_from_string")]
+    departure_time: chrono::Duration,
     stop_id: String,
     stop_sequence: u32,
     stop_headsign: String,
@@ -80,12 +80,44 @@ pub struct StopTime {
     shape_dist_traveled: String,
 }
 
+fn duration_from_string<'de, D>(deserializer: D) -> Result<chrono::Duration, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    let parts: Vec<&str> = s.split(':').collect();
+    if parts.len() != 3 {
+        return Err(de::Error::invalid_value(
+            Unexpected::Str(&s),
+            &"format: 11:22:33",
+        ));
+    }
+    let result = parse_duration(parts[0], parts[1], parts[2]);
+    match result {
+        Err(err) => Err(de::Error::invalid_value(
+            Unexpected::Str(&format!("{}: {}", s, err)),
+            &"format: 11:22:33",
+        )),
+        Ok(duration) => Ok(duration),
+    }
+}
+
+fn parse_duration(
+    hours: &str,
+    min: &str,
+    sec: &str,
+) -> Result<chrono::Duration, Box<dyn std::error::Error>> {
+    use chrono::Duration;
+    Ok(Duration::hours(hours.parse()?)
+        + Duration::minutes(min.parse()?)
+        + Duration::seconds(sec.parse()?))
+}
+
 #[test]
 fn deserialize_stoptimes() {
-    let mut rdr = csv::Reader::from_path("sncf-ter-gtfs/stop_times.txt").expect("opening file");
-    for record in rdr.deserialize() {
-        let _route: StopTime = record.unwrap();
-        println!("{:?}", _route);
+    let entities: Vec<StopTime> = from_csv("sncf-ter-gtfs/stop_times.txt").unwrap();
+    for entity in entities {
+        println!("{:?}", entity);
     }
 }
 
@@ -107,8 +139,10 @@ pub struct Service {
     saturday: bool,
     #[serde(deserialize_with = "bool_from_int")]
     sunday: bool,
-    start_date: String,
-    end_date: String,
+    #[serde(deserialize_with = "naivedate_from_string")]
+    start_date: chrono::NaiveDate,
+    #[serde(deserialize_with = "naivedate_from_string")]
+    end_date: chrono::NaiveDate,
 }
 
 fn bool_from_int<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -125,17 +159,32 @@ where
     }
 }
 
-#[test]
-fn deserialize_service_calendar() {
-    let services: Vec<Service> = from_csv("sncf-ter-gtfs/calendar.txt").unwrap();
-    for service in services {
-        println!("{:?}", service);
+fn naivedate_from_string<'de, D>(deserializer: D) -> Result<chrono::NaiveDate, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    let result = chrono::NaiveDate::parse_from_str(&s, "%Y%m%d");
+    match result {
+        Err(err) => Err(de::Error::invalid_value(
+            Unexpected::Str(&format!("{}: {}", s, err)),
+            &"format: 20200322",
+        )),
+        Ok(date) => Ok(date),
     }
 }
 
-pub fn from_csv<'a, T>(path: &str) -> Result<Vec<T>, Box<dyn std::error::Error>>
+#[test]
+fn deserialize_service_calendar() {
+    let entities: Vec<Service> = from_csv("sncf-ter-gtfs/calendar.txt").unwrap();
+    for entity in entities {
+        println!("{:?}", entity);
+    }
+}
+
+pub fn from_csv<T>(path: &str) -> Result<Vec<T>, Box<dyn std::error::Error>>
 where
-    T: Deserialize<'a>,
+    T: DeserializeOwned,
 {
     let mut rdr = csv::Reader::from_path(path)?;
     let mut records = Vec::new();
