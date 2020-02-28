@@ -4,14 +4,14 @@ use serde::{Deserialize, Deserializer};
 /// Stop (arret/gare)
 #[derive(Debug, Deserialize)]
 pub struct Stop {
-    stop_id: String,
-    stop_name: String,
-    stop_desc: String,
-    stop_lat: f64,
-    stop_lon: f64,
-    zone_id: String,
-    stop_url: String,
-    parent_station: String,
+    pub stop_id: String,
+    pub stop_name: String,
+    pub stop_desc: String,
+    pub stop_lat: f64,
+    pub stop_lon: f64,
+    pub zone_id: String,
+    pub stop_url: String,
+    pub parent_station: String,
 }
 
 #[test]
@@ -67,17 +67,17 @@ fn deserialize_trips() {
 /// StopTime a train arrival/departure from a stop on a trip (arret dans un voyage)
 #[derive(Debug, Deserialize)]
 pub struct StopTime {
-    trip_id: String,
+    pub trip_id: String,
     #[serde(deserialize_with = "duration_from_string")]
-    arrival_time: chrono::Duration,
+    pub arrival_time: chrono::Duration,
     #[serde(deserialize_with = "duration_from_string")]
-    departure_time: chrono::Duration,
-    stop_id: String,
-    stop_sequence: u32,
-    stop_headsign: String,
-    pickup_type: u32,
-    drop_off_type: u32,
-    shape_dist_traveled: String,
+    pub departure_time: chrono::Duration,
+    pub stop_id: String,
+    pub stop_sequence: u32,
+    pub stop_headsign: String,
+    pub pickup_type: u32,
+    pub drop_off_type: u32,
+    pub shape_dist_traveled: String,
 }
 
 fn duration_from_string<'de, D>(deserializer: D) -> Result<chrono::Duration, D::Error>
