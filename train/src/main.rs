@@ -1,4 +1,4 @@
-use itertools::Itertools;
+use std::collections::HashSet;
 
 mod gtfs;
 
@@ -22,15 +22,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     println!("count stop times {:?}", station_sts.len());
 
-    // find each trip and collect all stop by trip
-    let trips: Vec<String> = station_sts.iter().map(|&x| x.trip_id.clone()).collect();
-    println!("trips: {:?}", trips.len());
+    // find routes passing by the stop/time
+    let trips = gtfs::from_csv::<gtfs::Trip>("train/sncf-ter-gtfs/trips.txt")?;
+    let routes = gtfs::from_csv::<gtfs::Route>("train/sncf-ter-gtfs/routes.txt")?;
+    let mut station_routes = HashSet::new();
+    for st in station_sts {
+        // a stoptime is part of a trip, which are instances of a route
+        let trip_id = &st.trip_id;
+        let trip = trips.iter().find(|&t| t.trip_id == *trip_id).unwrap();
+        let route = routes.iter().find(|r| r.route_id == trip.route_id).unwrap();
+        station_routes.insert(route);
+    }
 
-    for (key, group) in &trips.into_iter().group_by(|x| x.clone()) {
-        let count = group.count();
-        if count > 1 {
-            println!("{:?}: {:?}", key, count);
-        }
+    for r in station_routes {
+        println!("{} {}", r.route_id, r.route_long_name);
     }
 
     Ok(())

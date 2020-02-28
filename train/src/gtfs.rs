@@ -23,17 +23,29 @@ fn deserialize_stops() {
 }
 
 /// Route (ligne)
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Eq)]
 pub struct Route {
-    route_id: String,
-    agency_id: String,
-    route_short_name: String,
-    route_long_name: String,
-    route_desc: String,
-    route_type: u32,
-    route_url: String,
-    route_color: String,
-    route_text_color: String,
+    pub route_id: String,
+    pub agency_id: String,
+    pub route_short_name: String,
+    pub route_long_name: String,
+    pub route_desc: String,
+    pub route_type: u32,
+    pub route_url: String,
+    pub route_color: String,
+    pub route_text_color: String,
+}
+
+impl PartialEq for Route {
+    fn eq(&self, other: &Self) -> bool {
+        self.route_id == other.route_id
+    }
+}
+
+impl std::hash::Hash for Route {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.route_id.hash(state);
+    }
 }
 
 #[test]
@@ -47,13 +59,13 @@ fn deserialize_routes() {
 /// Trip on a route (voyage d'une ligne)
 #[derive(Debug, Deserialize)]
 pub struct Trip {
-    route_id: String,
-    service_id: u32,
-    trip_id: String,
-    trip_headsign: String,
-    direction_id: u32,
-    block_id: String,
-    shape_id: String,
+    pub route_id: String,
+    pub service_id: u32,
+    pub trip_id: String,
+    pub trip_headsign: String,
+    pub direction_id: u32,
+    pub block_id: String,
+    pub shape_id: String,
 }
 
 #[test]
