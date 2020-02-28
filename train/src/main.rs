@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 mod gtfs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -22,6 +24,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // find each trip and collect all stop by trip
     let trips: Vec<String> = station_sts.iter().map(|&x| x.trip_id.clone()).collect();
-    println!("trips: {:?}", trips);
+    println!("trips: {:?}", trips.len());
+
+    for (key, group) in &trips.into_iter().group_by(|x| x.clone()) {
+        let count = group.count();
+        if count > 1 {
+            println!("{:?}: {:?}", key, count);
+        }
+    }
+
     Ok(())
 }
