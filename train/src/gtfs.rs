@@ -1,3 +1,4 @@
+use diesel::Queryable;
 use serde::de::{self, DeserializeOwned, Unexpected};
 use serde::{Deserialize, Deserializer};
 
@@ -23,7 +24,7 @@ fn deserialize_stops() {
 }
 
 /// Route (ligne)
-#[derive(Debug, Deserialize, Eq)]
+#[derive(Debug, Deserialize, Eq, Queryable)]
 pub struct Route {
     pub route_id: String,
     pub agency_id: String,

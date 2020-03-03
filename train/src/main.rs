@@ -3,6 +3,10 @@ use std::collections::HashSet;
 mod gtfs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
+
+fn from_csv() -> Result<(), Box<dyn std::error::Error>> {
     // Problem: display a route starting from a given stop (stop_point)
     println!("pwd: {:?}", std::env::current_dir()?);
 
@@ -37,6 +41,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for r in station_routes {
         println!("{} {}", r.route_id, r.route_long_name);
     }
-
     Ok(())
 }
