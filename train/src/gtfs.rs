@@ -1,4 +1,5 @@
-use diesel::Queryable;
+use crate::schema::{routes, trips};
+use diesel::{Insertable, Queryable};
 use serde::de::{self, DeserializeOwned, Unexpected};
 use serde::{Deserialize, Deserializer};
 
@@ -24,14 +25,14 @@ fn deserialize_stops() {
 }
 
 /// Route (ligne)
-#[derive(Debug, Deserialize, Eq, Queryable)]
+#[derive(Debug, Deserialize, Eq, Queryable, Insertable)]
 pub struct Route {
     pub route_id: String,
     pub agency_id: String,
     pub route_short_name: String,
     pub route_long_name: String,
     pub route_desc: String,
-    pub route_type: u32,
+    pub route_type: i32,
     pub route_url: String,
     pub route_color: String,
     pub route_text_color: String,
@@ -58,13 +59,13 @@ fn deserialize_routes() {
 }
 
 /// Trip on a route (voyage d'une ligne)
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Queryable, Insertable)]
 pub struct Trip {
     pub route_id: String,
-    pub service_id: u32,
+    pub service_id: i32,
     pub trip_id: String,
     pub trip_headsign: String,
-    pub direction_id: u32,
+    pub direction_id: i32,
     pub block_id: String,
     pub shape_id: String,
 }
@@ -86,10 +87,10 @@ pub struct StopTime {
     #[serde(deserialize_with = "duration_from_string")]
     pub departure_time: chrono::Duration,
     pub stop_id: String,
-    pub stop_sequence: u32,
+    pub stop_sequence: i32,
     pub stop_headsign: String,
-    pub pickup_type: u32,
-    pub drop_off_type: u32,
+    pub pickup_type: i32,
+    pub drop_off_type: i32,
     pub shape_dist_traveled: String,
 }
 
@@ -137,7 +138,7 @@ fn deserialize_stoptimes() {
 /// Service is a weekly calendar of availability of a Route
 #[derive(Debug, Deserialize)]
 pub struct Service {
-    service_id: u32,
+    service_id: i32,
     #[serde(deserialize_with = "bool_from_int")]
     monday: bool,
     #[serde(deserialize_with = "bool_from_int")]

@@ -1,8 +1,13 @@
+#[macro_use]
+extern crate diesel;
+
 use std::collections::HashSet;
 
 mod gtfs;
+mod schema;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let routes = gtfs::from_csv::<gtfs::Route>("train/sncf-ter-gtfs/routes.txt")?;
     Ok(())
 }
 
