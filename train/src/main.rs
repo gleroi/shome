@@ -1,13 +1,27 @@
 #[macro_use]
 extern crate diesel;
 
+use diesel::prelude::*;
+use diesel::replace_into;
+use diesel::SqliteConnection;
+use schema::routes::dsl::*;
+use schema::trips::dsl::*;
 use std::collections::HashSet;
+use std::env;
 
 mod gtfs;
 mod schema;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let routes = gtfs::from_csv::<gtfs::Route>("train/sncf-ter-gtfs/routes.txt")?;
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let conn = SqliteConnection::establish(&database_url).unwrap();
+
+    let csv_routes: Vec<gtfs::Route> = gtfs::from_csv::<gtfs::Route>("sncf-ter-gtfs/routes.txt")?;
+    replace_into(routes).values(&csv_routes).execute(&conn)?;
+
+    let csv_trips: Vec<gtfs::Trip> = gtfs::from_csv::<gtfs::Trip>("sncf-ter-gtfs/trips.txt")?;
+    replace_into(trips).values(&csv_trips).execute(&conn)?;
+
     Ok(())
 }
 
@@ -32,14 +46,17 @@ fn from_csv() -> Result<(), Box<dyn std::error::Error>> {
     println!("count stop times {:?}", station_sts.len());
 
     // find routes passing by the stop/time
-    let trips = gtfs::from_csv::<gtfs::Trip>("train/sncf-ter-gtfs/trips.txt")?;
-    let routes = gtfs::from_csv::<gtfs::Route>("train/sncf-ter-gtfs/routes.txt")?;
+    let csv_trips = gtfs::from_csv::<gtfs::Trip>("train/sncf-ter-gtfs/trips.txt")?;
+    let csv_routes = gtfs::from_csv::<gtfs::Route>("train/sncf-ter-gtfs/routes.txt")?;
     let mut station_routes = HashSet::new();
     for st in station_sts {
         // a stoptime is part of a trip, which are instances of a route
-        let trip_id = &st.trip_id;
-        let trip = trips.iter().find(|&t| t.trip_id == *trip_id).unwrap();
-        let route = routes.iter().find(|r| r.route_id == trip.route_id).unwrap();
+        let ctrip_id = &st.trip_id;
+        let trip = csv_trips.iter().find(|&t| t.trip_id == *ctrip_id).unwrap();
+        let route = csv_routes
+            .iter()
+            .find(|r| r.route_id == trip.route_id)
+            .unwrap();
         station_routes.insert(route);
     }
 
