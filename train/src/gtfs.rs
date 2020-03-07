@@ -1,10 +1,11 @@
-use crate::schema::{routes, trips};
+use crate::schema::{routes, stops, trips};
+use chrono::NaiveTime;
 use diesel::{Insertable, Queryable};
 use serde::de::{self, DeserializeOwned, Unexpected};
 use serde::{Deserialize, Deserializer};
 
 /// Stop (arret/gare)
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Queryable, Insertable)]
 pub struct Stop {
     pub stop_id: String,
     pub stop_name: String,
@@ -78,14 +79,25 @@ fn deserialize_trips() {
     }
 }
 
+#[derive(Debug)]
+pub struct Duration {
+    d: chrono::Duration,
+}
+
+impl From<chrono::Duration> for Duration {
+    fn from(d: chrono::Duration) -> Self {
+        Duration { d }
+    }
+}
+
 /// StopTime a train arrival/departure from a stop on a trip (arret dans un voyage)
 #[derive(Debug, Deserialize)]
 pub struct StopTime {
     pub trip_id: String,
-    #[serde(deserialize_with = "duration_from_string")]
-    pub arrival_time: chrono::Duration,
-    #[serde(deserialize_with = "duration_from_string")]
-    pub departure_time: chrono::Duration,
+    #[serde(deserialize_with = "time_from_string")]
+    pub arrival_time: NaiveTime,
+    #[serde(deserialize_with = "time_from_string")]
+    pub departure_time: NaiveTime,
     pub stop_id: String,
     pub stop_sequence: i32,
     pub stop_headsign: String,
@@ -94,37 +106,39 @@ pub struct StopTime {
     pub shape_dist_traveled: String,
 }
 
-fn duration_from_string<'de, D>(deserializer: D) -> Result<chrono::Duration, D::Error>
+fn time_from_string<'de, D>(deserializer: D) -> Result<NaiveTime, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    let parts: Vec<&str> = s.split(':').collect();
-    if parts.len() != 3 {
-        return Err(de::Error::invalid_value(
-            Unexpected::Str(&s),
-            &"format: 11:22:33",
-        ));
-    }
-    let result = parse_duration(parts[0], parts[1], parts[2]);
-    match result {
+    match parse_time_str(&s) {
         Err(err) => Err(de::Error::invalid_value(
-            Unexpected::Str(&format!("{}: {}", s, err)),
-            &"format: 11:22:33",
+            Unexpected::Str(&s),
+            &err.description(),
         )),
         Ok(duration) => Ok(duration),
     }
 }
 
-fn parse_duration(
-    hours: &str,
-    min: &str,
-    sec: &str,
-) -> Result<chrono::Duration, Box<dyn std::error::Error>> {
-    use chrono::Duration;
-    Ok(Duration::hours(hours.parse()?)
-        + Duration::minutes(min.parse()?)
-        + Duration::seconds(sec.parse()?))
+fn parse_time_str(s: &str) -> Result<NaiveTime, Box<dyn std::error::Error>> {
+    let parts: Vec<&str> = s.split(':').collect();
+    if parts.len() != 3 {
+        return Err(Box::from("format should be 11:22:33"));
+    }
+    let result = parse_time(parts[0], parts[1], parts[2]);
+    match result {
+        Err(err) => Err(Box::from(format!("{} : format should be 11:22:33", err))),
+        Ok(duration) => Ok(duration),
+    }
+}
+
+fn parse_time(hours: &str, min: &str, sec: &str) -> Result<NaiveTime, Box<dyn std::error::Error>> {
+    println!("debug: {} {} {}", hours, min, sec);
+    Ok(NaiveTime::from_hms(
+        hours.parse()?,
+        min.parse()?,
+        sec.parse()?,
+    ))
 }
 
 #[test]
